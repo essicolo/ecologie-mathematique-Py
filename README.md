@@ -1,5 +1,6 @@
 Sujets à couvrir:
-- Introduction au cours:
+
+- [ ] Introduction au cours:
     - Courbes de densité et types de variables: https://www.youtube.com/watch?v=THk2GBxkg4o
     - Variables confondantes: https://www.youtube.com/watch?v=aOX0pIwBCvw
     - Statistics for hackers: https://www.youtube.com/watch?v=L5GVOFAYi8k
