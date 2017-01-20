@@ -9,7 +9,10 @@ Sujets à couvrir:
     - [x] les modules: installation et maintenance
     - [x] les environnements virtuels
 - [ ] Data mining: explorer les données
-    - [ ] Introduction à la visualisation et à ggplot: http://www.sharpsightlabs.com/data-analysis-example-r-supercars-part2/
+    - [ ] Introduction à la visualisation
+        - Truthful art
+        - ggplot: http://www.sharpsightlabs.com/data-analysis-example-r-supercars-part2/
+        - altair: https://altair-viz.github.io
 - [ ] Outliers et imputation
 - [ ] Ordination et clustering
     - PCA: http://www.analyticsvidhya.com/blog/2016/03/practical-guide-principal-component-analysis-python/
