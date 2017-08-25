@@ -45,18 +45,18 @@ def biplot(objects, eigenvectors, eigenvalues=None,
         plot_ellipses: 2D numpy array of error (mean) and deviation (samples) ellipses around groups
         confidense_level: confidense level for the ellipses
         axis_label: string, the text describing the axes
+        llim, ylim: x and y limits
     Returns:
          biplot as matplotlib object
     """
 
-
     # select scaling
     if scaling == 1 or scaling == 'distance':
-        scores = objects[:, [xpc, ypc]]
-        loadings = eigenvectors[[xpc, ypc], :]
+        scores = objects
+        loadings = eigenvectors
     elif scaling == 2 or scaling == 'correlation':
-        scores = objects.dot(np.diag(eigenvalues**(-0.5)))[:, [xpc, ypc]]
-        loadings = eigenvectors.dot(np.diag(eigenvalues**0.5))
+        scores = objects.dot(np.diag(eigenvalues**(-0.5)))
+        loadings = eigenvectors.T.dot(np.diag(eigenvalues**0.5)).T
     else:
         raise ValueError("No such scaling")
 
@@ -93,7 +93,7 @@ def biplot(objects, eigenvectors, eigenvalues=None,
     if labels is not None:
         for i in range(loadings.shape[1]):
             plt.text(loadings[xpc, i]*1.2, loadings[ypc, i]*1.2, labels[i],
-                     color = 'black', ha = 'center', va = 'center', fontsize=20)
+                     color = 'black', ha = 'center', va = 'center') # , fontsize=20
 
     # axis labels
     plt.xlabel(axis_label + str(xpc+1))
