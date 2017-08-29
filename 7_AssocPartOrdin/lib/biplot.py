@@ -27,9 +27,11 @@ def ellipse(X, level=0.95, method='deviation', npoints=100):
 
 
 def biplot(objects, eigenvectors, eigenvalues=None,
-           labels=None, scaling=1, xpc=0, ypc=1,
+           vector_labels=None, object_labels=None, scaling=1, xpc=0, ypc=1,
+           show_arrows=True,
            group=None, plot_ellipses=False, confidense_level=0.95,
-           axis_label='PC', xlim=None, ylim=None):
+           axis_label='PC',
+           arrow_head_width=None):
 
     """
     Creates a biplot with:
@@ -38,31 +40,31 @@ def biplot(objects, eigenvectors, eigenvalues=None,
         objects: 2D numpy array of scores
         eigenvectors: 2D numpy array of loadings
         eigenvalues: 1D numpy array of eigenvalues, necessary to compute correlation biplot_scores
-        labels: 1D numpy array or list of labels for loadings
+        vector_labels: 1D numpy array or list of labels for loadings
+        object_labels: 1D numpy array or list of labels for objects
+        show_arrows: logical
         scaling: either 1 or "distance" for distance biplot, either 2 or "correlation" for correlation biplot
         xpc, ypc: integers, index of the axis to plot. generally xpc=0 and ypc=1 to plot the first and second components
         group: 1D numpy array of categories to color scores
         plot_ellipses: 2D numpy array of error (mean) and deviation (samples) ellipses around groups
         confidense_level: confidense level for the ellipses
         axis_label: string, the text describing the axes
-        llim, ylim: x and y limits
     Returns:
          biplot as matplotlib object
     """
-
     # select scaling
     if scaling == 1 or scaling == 'distance':
         scores = objects
         loadings = eigenvectors
     elif scaling == 2 or scaling == 'correlation':
         scores = objects.dot(np.diag(eigenvalues**(-0.5)))
-        loadings = eigenvectors.T.dot(np.diag(eigenvalues**0.5)).T
+        loadings = eigenvectors.dot(np.diag(eigenvalues**0.5))
     else:
         raise ValueError("No such scaling")
 
     # draw the cross
-    plt.axvline(0, ls='solid', c='k')
-    plt.axhline(0, ls='solid', c='k')
+    plt.axvline(0, ls='solid', c='grey', linewidth=0.5)
+    plt.axhline(0, ls='solid', c='grey', linewidth=0.5)
 
     # draw the ellipses
     if group is not None and plot_ellipses:
@@ -78,21 +80,45 @@ def biplot(objects, eigenvectors, eigenvalues=None,
 
     # plot scores
     if group is None:
-        plt.scatter(scores[:,xpc], scores[:,ypc])
+        if object_labels is None:
+            plt.scatter(scores[:,xpc], scores[:,ypc])
+        else:
+            for i in range(scores.shape[0]):
+                #print('i=', i)
+                #print(scores[i,xpc], scores[i,ypc])
+                plt.text(scores[i, xpc], scores[i, ypc], object_labels[i],
+                         color = 'blue', ha = 'center', va = 'center')
     else:
-        for i in range(len(np.unique(group))):
-            cond = group == np.unique(group)[i]
-            plt.plot(scores[cond, 0], scores[cond, 1], 'o')
+        if object_labels is None:
+            for i in range(len(np.unique(group))):
+                cond = group == np.unique(group)[i]
+                plt.plot(scores[cond, 0], scores[cond, 1], 'o')
+        else:
+            for i in range(len(np.unique(group))):
+                cond = group == np.unique(group)[i]
+                scores_gr = scores[cond, 0]
+                for j in range(scores_gr.shape[0]):
+                    plt.text(scores[j, xpc], scores[j, ypc], object_labels[j],
+                             ha = 'center', va = 'center')
 
     # plot loadings
-    for i in range(loadings.shape[1]):
-        plt.arrow(0, 0, loadings[xpc, i], loadings[ypc, i],
-                  color = 'black', head_width=np.ptp(objects)/100)
+    if show_arrows:
+        if arrow_head_width is None:
+            arrow_head_width = np.ptp(objects)/100
+        for i in range(loadings.shape[0]):
+            plt.arrow(0, 0, loadings[i, xpc], loadings[i, ypc],
+                      color = 'black', head_width=arrow_head_width)
 
     # plot loading labels
-    if labels is not None:
+    if vector_labels is None:
+        plt.plot(loadings[:, xpc], loadings[:, ypc], marker='+', color='red', ls='None')
+    else:
+        if show_arrows:
+            expand_load_text = 1.15
+        else:
+            expand_load_text = 1
         for i in range(loadings.shape[1]):
-            plt.text(loadings[xpc, i]*1.2, loadings[ypc, i]*1.2, labels[i],
+            plt.text(loadings[i, xpc]*expand_load_text, loadings[i, ypc]*expand_load_text, vector_labels[i],
                      color = 'black', ha = 'center', va = 'center') # , fontsize=20
 
     # axis labels
@@ -100,18 +126,17 @@ def biplot(objects, eigenvectors, eigenvalues=None,
     plt.ylabel(axis_label + str(ypc+1))
 
     # axis limit
-    if xlim is None:
-        xlim = [np.hstack((loadings[xpc, :], scores[:,xpc])).min(),
-                np.hstack((loadings[xpc, :], scores[:,xpc])).max()]
-        margin_x = 0.05*(xlim[1]-xlim[0])
-        xlim[0]=xlim[0]-margin_x
-        xlim[1]=xlim[1]+margin_x
-    if ylim is None:
-        ylim = [np.hstack((loadings[ypc, :], scores[:,ypc])).min(),
-                np.hstack((loadings[ypc, :], scores[:,ypc])).max()]
-        margin_y = 0.05*(ylim[1]-ylim[0])
-        ylim[0]=ylim[0]-margin_y
-        ylim[1]=ylim[1]+margin_y
+    xlim = [np.hstack((loadings[:, xpc], scores[:,xpc])).min(),
+            np.hstack((loadings[:, xpc], scores[:,xpc])).max()]
+    margin_x = 0.05*(xlim[1]-xlim[0])
+    xlim[0]=xlim[0]-margin_x
+    xlim[1]=xlim[1]+margin_x
+
+    ylim = [np.hstack((loadings[:, ypc], scores[:,ypc])).min(),
+            np.hstack((loadings[:, ypc], scores[:,ypc])).max()]
+    margin_y = 0.05*(ylim[1]-ylim[0])
+    ylim[0]=ylim[0]-margin_y
+    ylim[1]=ylim[1]+margin_y
     plt.xlim(xlim)
     plt.ylim(ylim)
 
