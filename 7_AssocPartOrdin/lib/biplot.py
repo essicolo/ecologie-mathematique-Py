@@ -26,7 +26,7 @@ def ellipse(X, level=0.95, method='deviation', npoints=100):
     return ellipse
 
 
-def biplot(objects, eigenvectors, eigenvalues=None,
+def biplot(objects, eigenvectors=None, eigenvalues=None,
            vector_labels=None, object_labels=None, scaling=1, xpc=0, ypc=1,
            show_arrows=True,
            group=None, plot_ellipses=False, confidense_level=0.95,
@@ -61,6 +61,9 @@ def biplot(objects, eigenvectors, eigenvalues=None,
         loadings = eigenvectors.dot(np.diag(eigenvalues**0.5))
     else:
         raise ValueError("No such scaling")
+
+    if eigenvectors is None:
+        loadings=np.array([[0, 0]]) # to include in the computation of plot limits
 
     # draw the cross
     plt.axvline(0, ls='solid', c='grey', linewidth=0.5)
@@ -102,24 +105,25 @@ def biplot(objects, eigenvectors, eigenvalues=None,
                              ha = 'center', va = 'center')
 
     # plot loadings
-    if show_arrows:
-        if arrow_head_width is None:
-            arrow_head_width = np.ptp(objects)/100
-        for i in range(loadings.shape[0]):
-            plt.arrow(0, 0, loadings[i, xpc], loadings[i, ypc],
-                      color = 'black', head_width=arrow_head_width)
-
-    # plot loading labels
-    if vector_labels is None:
-        plt.plot(loadings[:, xpc], loadings[:, ypc], marker='+', color='red', ls='None')
-    else:
+    if eigenvectors is not None:
         if show_arrows:
-            expand_load_text = 1.15
+            if arrow_head_width is None:
+                arrow_head_width = np.ptp(objects)/100
+            for i in range(loadings.shape[0]):
+                plt.arrow(0, 0, loadings[i, xpc], loadings[i, ypc],
+                          color = 'black', head_width=arrow_head_width)
+
+        # plot loading labels
+        if vector_labels is None:
+            plt.plot(loadings[:, xpc], loadings[:, ypc], marker='+', color='red', ls='None')
         else:
-            expand_load_text = 1
-        for i in range(loadings.shape[1]):
-            plt.text(loadings[i, xpc]*expand_load_text, loadings[i, ypc]*expand_load_text, vector_labels[i],
-                     color = 'black', ha = 'center', va = 'center') # , fontsize=20
+            if show_arrows:
+                expand_load_text = 1.15
+            else:
+                expand_load_text = 1
+            for i in range(loadings.shape[1]):
+                plt.text(loadings[i, xpc]*expand_load_text, loadings[i, ypc]*expand_load_text, vector_labels[i],
+                         color = 'black', ha = 'center', va = 'center') # , fontsize=20
 
     # axis labels
     plt.xlabel(axis_label + str(xpc+1))
