@@ -3,6 +3,27 @@ import matplotlib.pylab as plt
 from scipy.stats import f as ssf
 
 
+def wascores(x, w, expand=False):
+    """
+    Inspired by vegan function wascores https://rdrr.io/rforge/vegan/man/wascores.html to compute species scores.
+    x: 2D numpy array of the scores
+    w: abundance data
+    expand: logical, if True species has a weigthed variance
+    """
+    wa = np.zeros((w.shape[1], x.shape[1]))
+    for i in range(wa.shape[0]):
+        wa[i, :] = np.average(x, axis=0, weights=w[:,i])
+    if expand:
+        x_w = w.sum(axis=1)
+        ewa_w = w.sum(axis=0)
+        x_cov = np.cov(x.T, fweights=x_w, ddof=1)
+        wa_cov = np.cov(wa.T, fweights=ewa_w, ddof=1)
+        wa_cov_center = np.average(wa, axis=0, weights=ewa_w)
+        mul = np.sqrt(np.diag(x_cov)/np.diag(wa_cov))
+        wa = (wa-wa_cov_center)*mul+wa_cov_center
+    return(wa)
+
+
 def ellipse(X, level=0.95, method='deviation', npoints=100):
     """
     X: data, 2D numpy array with 2 columns
@@ -146,20 +167,22 @@ def biplot(objects, eigenvectors=None, eigenvalues=None,
 
 
 def triplot(objects, eigenvectors, species, eigenvalues=None,
-           labels=None, scaling=1, xpc=0, ypc=1,
-           axis_label='PC'):
+           labels=None, xpc=0, ypc=1,
+           axis_label='PC',
+           arrow_head_width=None,
+           arrow_scale = 1):
     """
     objects, species and eigenvectors are pandas.DataFrames
+    arrow_scale: scaling the arrows. if 0, automatic scaling of arrows where the longuest arrow equal 2/3 of the farthest score
     """
-
     site_scores = objects.iloc[:, [xpc, ypc]]
     species_scores = species.iloc[:, [xpc, ypc]]
     loadings = eigenvectors
 
 
     # draw the cross
-    plt.axvline(0, ls='solid', c='k')
-    plt.axhline(0, ls='solid', c='k')
+    plt.axvline(0, ls='solid', c='gray')
+    plt.axhline(0, ls='solid', c='gray')
 
     # plot scores
     ## sites
@@ -177,15 +200,27 @@ def triplot(objects, eigenvectors, species, eigenvalues=None,
                  color='red')
 
     # plot loadings
-    expand_scores = 3
-    margin_score_labels = 0.3
+    if arrow_scale == 0:
+        x_comb = np.hstack((species_scores.iloc[:,0], site_scores.iloc[:,0]))
+        y_comb = np.hstack((species_scores.iloc[:,1], site_scores.iloc[:,1]))
+        x_rad = np.max(np.abs(x_comb))
+        y_rad = np.max(np.abs(y_comb))
+        rad = np.max(np.hstack((x_rad, y_rad))) * 0.666
+        load_rad = loadings.apply(lambda x: np.sqrt(x[0]**2 + x[1]**2), axis=1).max()
+        arrow_scale = rad/load_rad
+    if arrow_head_width is None:
+        arrow_head_width = np.ptp(objects.as_matrix())/100
     for i in range(loadings.shape[0]):
         plt.arrow(0, 0,
-              loadings.iloc[i,0]*expand_scores,
-              loadings.iloc[i,1]*expand_scores,
-              color = 'blue', head_width=.1)
-        plt.text(x=loadings.iloc[i,0]*(expand_scores + margin_score_labels),
-             y=loadings.iloc[i,1]*(expand_scores + margin_score_labels),
+              loadings.iloc[i,0]*arrow_scale,
+              loadings.iloc[i,1]*arrow_scale,
+              color = 'blue', head_width=arrow_head_width)
+
+    # plot biplot scores (X variables)
+    margin_score_labels = 0.1
+    for i in range(loadings.shape[0]):
+        plt.text(x=loadings.iloc[i,0]*(arrow_scale+margin_score_labels),
+             y=loadings.iloc[i,1]*(arrow_scale+margin_score_labels),
              s = loadings.index.values[i],
              color='blue')
 
@@ -197,10 +232,10 @@ def triplot(objects, eigenvectors, species, eigenvalues=None,
     # amalgamate all the values to define the limits in X and Y
     allX = np.hstack((species_scores.iloc[:,0],
                       site_scores.iloc[:,0],
-                      loadings.iloc[:,0]*(expand_scores + margin_score_labels)))
+                      loadings.iloc[:,0]*(arrow_scale+margin_score_labels)))
     allY = np.hstack((species_scores.iloc[:,1],
                       site_scores.iloc[:,1],
-                      loadings.iloc[:,1]*(expand_scores + margin_score_labels)))
-    margin_plot = 0.5
-    plt.xlim([np.min(allX)-margin_plot, np.max(allX)+margin_plot])
-    plt.ylim([np.min(allY)-margin_plot, np.max(allY)+margin_plot])
+                      loadings.iloc[:,1]*(arrow_scale+margin_score_labels)))
+    margin_plot = 1.1
+    plt.xlim([np.min(allX)*margin_plot, np.max(allX)*margin_plot])
+    plt.ylim([np.min(allY)*margin_plot, np.max(allY)*margin_plot])
